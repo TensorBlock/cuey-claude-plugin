@@ -48,6 +48,7 @@ const DEFAULT_TIMEOUT_MS = 120000;
 const DEFAULT_SYNTHESIS_TIMEOUT_MS = 90000;
 const DEFAULT_SYNTHESIS_ATTEMPTS = 2;
 const MAX_ERROR_MESSAGE_LENGTH = 260;
+const MAX_SPREADSHEET_CONTEXT_LENGTH = 180000;
 
 function cleanBaseUrl(value) {
   return String(value || DEFAULT_API_BASE_URL).replace(/\/+$/, "");
@@ -83,6 +84,18 @@ function normalizeModels(models, reasoningLevel = "standard") {
 function normalizeReasoningLevel(value) {
   const normalized = String(value || "standard").trim().toLowerCase();
   return normalized === "advanced" ? "advanced" : "standard";
+}
+
+function normalizeSpreadsheet(input) {
+  if (!input || typeof input !== "object") return null;
+  const filename = String(input.filename || input.fileName || "").trim();
+  const documentId = String(input.documentId || input.document_id || "").trim();
+  let context = String(input.context || input.workbookContext || input.workbook_context || "").trim();
+  if (context.length > MAX_SPREADSHEET_CONTEXT_LENGTH) {
+    context = `${context.slice(0, MAX_SPREADSHEET_CONTEXT_LENGTH).trimEnd()}\n\n[Workbook context truncated by Cuey]`;
+  }
+  if (!filename && !context && !documentId) return null;
+  return { filename, context, documentId };
 }
 
 function requestHeaders({ token, anonymousId, json = true } = {}) {
@@ -194,14 +207,22 @@ function extractReasoningText(json) {
   return typeof content === "string" ? content.trim() : "";
 }
 
-export function buildAskCueyMessages({ question, context, mode } = {}) {
+export function buildAskCueyMessages({ question, context, mode, spreadsheet } = {}) {
   const q = String(question || "").trim();
   const ctx = String(context || "").trim();
+  const workbook = normalizeSpreadsheet(spreadsheet);
   const normalizedMode = String(mode || "ask").trim().toLowerCase() || "ask";
   const userParts = [];
   if (ctx) {
     userParts.push("Relevant context:");
     userParts.push(ctx);
+    userParts.push("");
+  }
+  if (workbook?.context) {
+    userParts.push("Attached Excel workbook:");
+    if (workbook.filename) userParts.push(`Filename: ${workbook.filename}`);
+    userParts.push("Workbook context:");
+    userParts.push(workbook.context);
     userParts.push("");
   }
   userParts.push(`Cuey mode: ${normalizedMode}`);
@@ -223,6 +244,7 @@ export function normalizeCueyRequest(input = {}) {
     mode: String(input.mode || "ask").trim().toLowerCase() || "ask",
     question,
     context: String(input.context || "").trim(),
+    spreadsheet: normalizeSpreadsheet(input.spreadsheet),
     models: normalizeModels(input.models, reasoningLevel),
     reasoningLevel,
     source: String(input.source || "claude_skill").trim() || "claude_skill",
@@ -288,10 +310,22 @@ export function buildSynthesisRequest({ cueyMessageId, candidateResponses, metad
 }
 
 export async function writeLatestAskCueyResult(result, resultPath = LATEST_RESULT_PATH) {
+  const request = result?.request
+    ? {
+        ...result.request,
+        spreadsheet: result.request.spreadsheet
+          ? {
+              filename: result.request.spreadsheet.filename || "",
+              documentId: result.request.spreadsheet.documentId || "",
+              hasContext: Boolean(result.request.spreadsheet.context),
+            }
+          : null,
+      }
+    : null;
   const payload = {
     schemaVersion: 1,
     writtenAt: new Date().toISOString(),
-    request: result?.request || null,
+    request,
     cueyMessageId: result?.cueyMessageId || null,
     synthesis: result?.synthesis || null,
     candidates: (result?.candidates || []).map((candidate) => ({
@@ -498,6 +532,15 @@ export async function runAskCuey(input = {}, options = {}) {
     cuey_source: request.source,
     cuey_mode: request.mode,
     reasoning_level: request.reasoningLevel,
+    ...(request.spreadsheet?.filename
+      ? { spreadsheet_filename: request.spreadsheet.filename }
+      : {}),
+    ...(request.spreadsheet?.context
+      ? { has_spreadsheet_context: true }
+      : {}),
+    ...(request.spreadsheet?.documentId
+      ? { spreadsheet_document_id: request.spreadsheet.documentId }
+      : {}),
   };
 
   const candidateSettled = await Promise.allSettled(

@@ -7,12 +7,12 @@ import {
 } from "./ask-cuey-client.mjs";
 
 const SERVER_NAME = "cuey-claude-mcp";
-const SERVER_VERSION = "0.3.3";
+const SERVER_VERSION = "0.4.0";
 
 const tools = [
   {
     name: "ask_cuey",
-    description: "Run Ask Cuey multi-model fanout and synthesis. Call this tool whenever the user explicitly asks to use Cuey, asks for a Cuey comparison, or the message instructs you to use the Cuey MCP tool. The text content is the final synthesis: return it verbatim without adding analysis, commentary, or a separate answer.",
+    description: "Run Ask Cuey multi-model fanout and synthesis, optionally using structured context extracted from an attached Excel workbook. Call this tool whenever the user explicitly asks to use Cuey, asks for a Cuey comparison, or the message instructs you to use the Cuey MCP tool. The text content is the final synthesis: return it verbatim without adding analysis, commentary, or a separate answer.",
     inputSchema: {
       type: "object",
       properties: {
@@ -28,6 +28,24 @@ const tools = [
         context: {
           type: "string",
           description: "Relevant Claude-visible context to include.",
+        },
+        spreadsheet: {
+          type: "object",
+          description: "Structured context extracted from the Excel workbook attached to the current Claude request.",
+          properties: {
+            filename: {
+              type: "string",
+              description: "Original .xlsx filename.",
+            },
+            context: {
+              type: "string",
+              description: "Workbook sheet names, used ranges, values, and formulas relevant to the question.",
+            },
+            documentId: {
+              type: "string",
+              description: "Optional Cuey document ID when the workbook was uploaded through Cuey.",
+            },
+          },
         },
         models: {
           type: "array",
