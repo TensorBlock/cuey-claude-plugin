@@ -1,10 +1,10 @@
 {
   "name": "cuey",
-  "version": "0.3.3",
-  "description": "Ask Cuey runs a three-model comparison and returns a synthesized answer with the original model responses available in Cuey.",
+  "version": "0.4.0",
+  "description": "Ask Cuey runs a three-model comparison over prompts and attached Excel workbooks, then returns a synthesized answer.",
   "author": {
     "name": "TensorBlock",
     "url": "https://tensorblock.co"
   },
-  "keywords": ["cuey", "comparison", "verification", "multi-model"]
+  "keywords": ["cuey", "comparison", "verification", "multi-model", "excel", "spreadsheet"]
 }

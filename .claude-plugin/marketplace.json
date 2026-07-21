@@ -8,13 +8,13 @@
     {
       "name": "cuey",
       "source": "./plugins/cuey",
-      "description": "Run Cuey's multi-model comparison and return a synthesized answer.",
-      "version": "0.3.3",
+      "description": "Run Cuey's multi-model comparison over prompts and attached Excel workbooks.",
+      "version": "0.4.0",
       "author": {
         "name": "TensorBlock"
       },
       "category": "productivity",
-      "tags": ["comparison", "verification", "multi-model"]
+      "tags": ["comparison", "verification", "multi-model", "excel", "spreadsheet"]
     }
   ]
 }

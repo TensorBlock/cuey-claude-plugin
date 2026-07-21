@@ -70,6 +70,39 @@ test("buildAskCueyMessages includes relevant context and question", () => {
   assert.match(messages[1].content, /Cuey mode: verify/);
 });
 
+test("normalizeCueyRequest preserves structured Excel workbook context", () => {
+  const request = normalizeCueyRequest({
+    question: "Summarize this workbook",
+    spreadsheet: {
+      filename: "forecast.xlsx",
+      context: "Sheets: Revenue, Assumptions\nRevenue!A1:B2\nYear | ARR\n2026 | 12000000",
+      document_id: "doc-123",
+    },
+  });
+
+  assert.deepEqual(request.spreadsheet, {
+    filename: "forecast.xlsx",
+    context: "Sheets: Revenue, Assumptions\nRevenue!A1:B2\nYear | ARR\n2026 | 12000000",
+    documentId: "doc-123",
+  });
+});
+
+test("buildAskCueyMessages labels attached Excel context separately", () => {
+  const messages = buildAskCueyMessages({
+    question: "What changed year over year?",
+    mode: "summarize",
+    spreadsheet: {
+      filename: "forecast.xlsx",
+      context: "Sheet Revenue, used range A1:B2\nYear | ARR\n2026 | 12000000",
+    },
+  });
+
+  assert.match(messages[1].content, /Attached Excel workbook:/);
+  assert.match(messages[1].content, /Filename: forecast\.xlsx/);
+  assert.match(messages[1].content, /Sheet Revenue, used range A1:B2/);
+  assert.match(messages[1].content, /What changed year over year\?/);
+});
+
 test("buildCandidateRequest sends anonymous id for public requests", () => {
   const request = buildCandidateRequest({
     apiBaseUrl: "https://staging-api.cuey.io/api/cuey",
@@ -286,6 +319,38 @@ test("writeLatestAskCueyResult stores original model answers for the overlay", a
     assert.equal(parsed.synthesis.answer, "Fix churn first.");
     assert.equal(parsed.candidates[0].modelId, "gpt-5.5");
     assert.equal(parsed.candidates[0].content, "Raw GPT answer");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeLatestAskCueyResult records workbook presence without persisting cell context", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "cuey-result-"));
+  const resultPath = path.join(dir, "latest-ask-cuey-result.json");
+  try {
+    await writeLatestAskCueyResult(
+      {
+        request: {
+          question: "Summarize this workbook",
+          spreadsheet: {
+            filename: "forecast.xlsx",
+            context: "private workbook cells",
+            documentId: "doc-123",
+          },
+        },
+        synthesis: { answer: "Revenue increased." },
+        candidates: [],
+      },
+      resultPath,
+    );
+
+    const parsed = JSON.parse(await readFile(resultPath, "utf8"));
+    assert.deepEqual(parsed.request.spreadsheet, {
+      filename: "forecast.xlsx",
+      documentId: "doc-123",
+      hasContext: true,
+    });
+    assert.doesNotMatch(await readFile(resultPath, "utf8"), /private workbook cells/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
