@@ -1,0 +1,10 @@
+{
+  "name": "cuey",
+  "version": "0.3.0",
+  "description": "Ask Cuey runs a three-model comparison and returns a synthesized answer with the original model responses available in Cuey.",
+  "author": {
+    "name": "TensorBlock",
+    "url": "https://tensorblock.co"
+  },
+  "keywords": ["cuey", "comparison", "verification", "multi-model"]
+}
