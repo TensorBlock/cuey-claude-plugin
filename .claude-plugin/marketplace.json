@@ -9,7 +9,7 @@
       "name": "cuey",
       "source": "./plugins/cuey",
       "description": "Run Cuey's multi-model comparison and return a synthesized answer.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "TensorBlock"
       },

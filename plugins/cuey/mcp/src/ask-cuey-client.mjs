@@ -14,9 +14,9 @@ export const LATEST_RESULT_PATH = path.join(
 );
 
 export const DEFAULT_MODELS = [
-  "gpt-5.5",
-  "claude-sonnet-4-6",
-  "native/gemini-3.1-pro-preview",
+  "grok-4.5-reasoning",
+  "gpt-5.6-sol",
+  "claude-opus-4-8",
 ];
 
 export const ADVANCED_REASONING_MODEL_ALIASES = {
@@ -24,6 +24,7 @@ export const ADVANCED_REASONING_MODEL_ALIASES = {
   "claude-sonnet-4-6": "claude-sonnet-4-6-think",
   "native/gemini-3.1-pro-preview": "native/gemini-3.1-pro-preview-think",
   "grok-4.3": "grok-4.3-reasoning",
+  "grok-4.5": "grok-4.5-reasoning",
 };
 
 export const COMPARE_OUTPUT_FORMAT_PROMPT = `Answer in Markdown. Add tags after each element:

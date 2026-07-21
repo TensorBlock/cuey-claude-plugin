@@ -15,7 +15,7 @@ Send this payload:
   "mode": "ask | compare | verify | summarize",
   "question": "$ARGUMENTS",
   "context": "only relevant prior conversation context",
-  "models": ["gpt-5.5", "claude-sonnet-4-6", "native/gemini-3.1-pro-preview"],
+  "models": ["grok-4.5-reasoning", "gpt-5.6-sol", "claude-opus-4-8"],
   "reasoningLevel": "standard",
   "source": "claude_plugin"
 }

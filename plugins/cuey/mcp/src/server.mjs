@@ -7,7 +7,7 @@ import {
 } from "./ask-cuey-client.mjs";
 
 const SERVER_NAME = "cuey-claude-mcp";
-const SERVER_VERSION = "0.3.0";
+const SERVER_VERSION = "0.3.3";
 
 const tools = [
   {

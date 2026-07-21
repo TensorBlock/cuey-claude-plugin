@@ -9,6 +9,7 @@ import {
   buildAskCueyMessages,
   buildFallbackSynthesis,
   buildSynthesisRequest,
+  DEFAULT_MODELS,
   formatAskCueyResult,
   formatCueyErrorMessage,
   isUsableSynthesisResult,
@@ -30,17 +31,28 @@ test("normalizeCueyRequest caps models at three and keeps defaults", () => {
   assert.equal(request.reasoningLevel, "advanced");
 });
 
+test("normalizeCueyRequest uses the current Ask Cuey default model trio", () => {
+  const request = normalizeCueyRequest({ question: "What are the risks?" });
+
+  assert.deepEqual(DEFAULT_MODELS, [
+    "grok-4.5-reasoning",
+    "gpt-5.6-sol",
+    "claude-opus-4-8",
+  ]);
+  assert.deepEqual(request.models, DEFAULT_MODELS);
+});
+
 test("normalizeCueyRequest maps advanced reasoning to Ask Cuey model aliases", () => {
   const request = normalizeCueyRequest({
     question: "What are the risks?",
     reasoningLevel: "advanced",
-    models: ["claude-sonnet-4-6", "native/gemini-3.1-pro-preview", "grok-4.3"],
+    models: ["grok-4.5", "gpt-5.6-sol", "claude-opus-4-8"],
   });
 
   assert.deepEqual(request.models, [
-    "claude-sonnet-4-6-think",
-    "native/gemini-3.1-pro-preview-think",
-    "grok-4.3-reasoning",
+    "grok-4.5-reasoning",
+    "gpt-5.6-sol",
+    "claude-opus-4-8-think",
   ]);
 });
 
