@@ -6,7 +6,7 @@ argument-hint: <question>
 
 # Cuey
 
-When invoked, call the local MCP tool `cuey:ask_cuey` immediately. Do not inspect files, use bash, recall memory, search, or answer directly before calling the tool.
+When invoked, call the local MCP tool `cuey-plugin:ask_cuey` immediately. Do not inspect files, use bash, recall memory, search, or answer directly before calling the tool.
 
 Send this payload:
 

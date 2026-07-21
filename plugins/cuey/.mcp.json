@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "cuey": {
+    "cuey-plugin": {
       "command": "/bin/zsh",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/run-cuey-mcp.sh"],
       "env": {
