@@ -26,7 +26,7 @@ Choose `compare` for comparisons, `verify` for risk or correctness checks, `summ
 After a successful call:
 
 1. Return the first text item from the MCP result exactly as the complete answer.
-2. Preserve its Markdown and `View original answers` link.
+2. Preserve its Markdown.
 3. Add no preface, analysis, model commentary, or follow-up.
 4. Stop immediately.
 

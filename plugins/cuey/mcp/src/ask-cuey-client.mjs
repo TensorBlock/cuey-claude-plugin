@@ -4,7 +4,6 @@ import { homedir } from "node:os";
 import path from "node:path";
 
 export const DEFAULT_API_BASE_URL = "https://staging-api.cuey.io/api/cuey";
-export const ORIGINAL_ANSWERS_URL = "cuey-overlay://original-answers/latest";
 export const LATEST_RESULT_PATH = path.join(
   homedir(),
   "Library",
@@ -567,10 +566,6 @@ export function formatAskCueyResult(result) {
 
   const candidates = result?.candidates || [];
   const failedCandidates = candidates.filter((candidate) => candidate?.error);
-  if (candidates.some((candidate) => candidate?.content || candidate?.error)) {
-    lines.push("");
-    lines.push(`[View original answers](${ORIGINAL_ANSWERS_URL})`);
-  }
 
   if (failedCandidates.length > 0) {
     lines.push("");

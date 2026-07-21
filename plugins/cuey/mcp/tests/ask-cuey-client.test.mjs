@@ -13,7 +13,6 @@ import {
   formatCueyErrorMessage,
   isUsableSynthesisResult,
   normalizeCueyRequest,
-  ORIGINAL_ANSWERS_URL,
   parseSynthesisText,
   sanitizeCueyMarkdown,
   writeLatestAskCueyResult,
@@ -215,7 +214,7 @@ test("formatAskCueyResult keeps happy path focused on synthesis", () => {
     ],
   });
 
-  assert.equal(formatted, `Fix churn before hiring 20 sales reps.\n\n[View original answers](${ORIGINAL_ANSWERS_URL})`);
+  assert.equal(formatted, "Fix churn before hiring 20 sales reps.");
   assert.doesNotMatch(formatted, /Cuey completed|Synthesis:|Model responses|Raw GPT|Raw Claude|Raw Gemini/);
 });
 
