@@ -6,7 +6,7 @@ argument-hint: <question>
 
 # Cuey
 
-When invoked, call the local MCP tool `cuey-plugin:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
+When invoked, call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
 
 If the current request includes an Excel `.xlsx` attachment, read that attachment first with Claude's available file or spreadsheet capability. Build compact workbook context containing:
 

@@ -1,6 +1,6 @@
 {
   "name": "cuey",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Ask Cuey runs a three-model comparison over prompts and attached Excel workbooks, then returns a synthesized answer.",
   "author": {
     "name": "TensorBlock",

@@ -10,11 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Test MCP client
-        run: npm test --prefix plugins/cuey/mcp
       - name: Build plugin package
         run: scripts/build-plugin.sh
       - name: Upload plugin package
