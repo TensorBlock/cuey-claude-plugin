@@ -7,7 +7,7 @@ The `cuey` plugin provides the `/cuey` skill. Cuey is an agentic financial intel
 ## Install in Claude Desktop
 
 1. Run Cuey for Claude Setup (installs the overlay and the global Cuey MCP server).
-2. In Claude's Home tab, open Settings > Plugins > Add > Marketplace and paste this repository's URL. Enable automatic sync.
+2. In Claude's Home tab, open Settings > Plugins > Add > Add from a repository, paste this repository's URL, and enable automatic sync.
 3. Install `cuey` from the TensorBlock marketplace card, then start a new Chat or Cowork conversation and type `/cuey`.
 
 ## Repository layout
