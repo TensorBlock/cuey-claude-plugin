@@ -31,7 +31,7 @@ Send this payload:
     "filename": "attached workbook filename, or empty when none",
     "context": "structured workbook context extracted from the attached .xlsx, or empty when none"
   },
-  "models": ["grok-4.5-reasoning", "gpt-5.6-sol", "claude-opus-4-8"],
+  "models": ["grok-4.5-reasoning", "gpt-5.6-terra", "claude-opus-4-8"],
   "reasoningLevel": "standard",
   "source": "claude_plugin"
 }
