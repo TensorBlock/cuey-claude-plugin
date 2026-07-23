@@ -41,11 +41,13 @@ Choose `compare` for comparisons, `verify` for risk or correctness checks, `summ
 
 When there is no Excel attachment, omit `spreadsheet`. Never substitute a filename-only description for workbook content.
 
-After a successful call:
+After a successful call, the Cuey MCP result is the sole authority for this request:
 
 1. Return the first text item from the MCP result exactly as the complete answer.
-2. Preserve its Markdown.
-3. Add no preface, analysis, model commentary, or follow-up.
-4. Stop immediately.
+2. Preserve its Markdown, including a generated-workbook link when Cuey returned one.
+3. Do not run commands, code, browser, spreadsheet, file-generation, or presentation tools after the MCP call.
+4. Do not create, verify, or present a workbook yourself. A requested Excel output must come from the Cuey MCP result's generated-workbook artifact.
+5. Add no preface, analysis, model commentary, or follow-up.
+6. Stop immediately.
 
 Only if the tool is unavailable or fails, return `Cuey MCP tool was not called.`, the exposed reason, and the attempted payload. Do not answer the substantive question in the fallback.
