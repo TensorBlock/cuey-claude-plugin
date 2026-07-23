@@ -8,8 +8,8 @@
     {
       "name": "cuey",
       "source": "./plugins/cuey",
-      "description": "Run Cuey's three-model comparison over prompts and attached Excel workbooks, then return a synthesized answer.",
-      "version": "0.4.1",
+      "description": "Cuey is an agentic financial intelligence system that analyzes prompts and Excel workbooks, improves decision accuracy through cross-checking and fact-checking, and delivers evidence-backed recommendations.",
+      "version": "0.4.2",
       "author": {
         "name": "TensorBlock"
       },

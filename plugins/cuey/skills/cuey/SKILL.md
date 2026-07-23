@@ -1,10 +1,12 @@
 ---
 name: cuey
-description: Run Cuey's three-model comparison and return its synthesis. Use when the user invokes /cuey, asks to use Cuey, asks for a Cuey comparison, cross-check, or multi-model verification.
+description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations.
 argument-hint: <question>
 ---
 
 # Cuey
+
+Run this skill only after the user explicitly invokes `/cuey`. Do not invoke Cuey automatically for financial decisions, model analysis, business assumptions, or any other request that does not include `/cuey`.
 
 When invoked, call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
 
