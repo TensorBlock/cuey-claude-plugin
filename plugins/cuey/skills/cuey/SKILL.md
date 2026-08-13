@@ -10,7 +10,24 @@ Run this skill only after the user explicitly invokes `/cuey`. Do not invoke Cue
 
 When invoked, call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
 
-If the current request includes an Excel `.xlsx` attachment, read that attachment first with Claude's available file or spreadsheet capability. Build compact workbook context containing:
+Preserve Claude's normal attachment workflow. Users attach files in Claude's
+composer; Cuey consumes only files and attachment content that Claude already
+exposes in the current request. Do not search local paths, upload or send files
+separately, invent file handles, or replace available attachment content with
+Claude-generated summaries. Do not decide the merge route. Cuey backend chooses
+the final synthesis or artifact merge after fanout returns.
+
+If the request includes Claude-visible attachments of any type, read them with
+Claude's available file, spreadsheet, document, or vision capability and add
+compact, relevant attachment context to `context`. This applies to Excel, PDF,
+image, document, text, CSV, and other Claude-readable files. For each relevant
+attachment, include the filename, file type, extracted content or observations
+needed for the user's request, and any omitted sections when the file is too
+large to include fully. Do not include only a filename when actual attachment
+content is available.
+
+If the request includes a native Claude `.xlsx` attachment, also build compact
+workbook context in `spreadsheet` containing:
 
 - workbook filename;
 - every sheet name;
@@ -26,18 +43,33 @@ Send this payload:
 {
   "mode": "ask | compare | verify | summarize",
   "question": "$ARGUMENTS",
-  "context": "only relevant prior conversation context",
+  "context": "only relevant prior conversation context plus compact context extracted from Claude-visible non-Excel attachments",
   "spreadsheet": {
     "filename": "attached workbook filename, or empty when none",
     "context": "structured workbook context extracted from the attached .xlsx, or empty when none"
   },
+  "worklog": true,
   "source": "claude_plugin"
 }
 ```
 
 Choose `compare` for comparisons, `verify` for risk or correctness checks, `summarize` for summaries, and `ask` otherwise.
 
-When there is no Excel attachment, omit `spreadsheet`. Never substitute a filename-only description for workbook content.
+Set `"worklog": true` only when the request is clearly a CFO, FP&A, finance,
+financial model, forecast, budget, board, investor, audit, reporting, variance,
+revenue, cost, cash, runway, or unit-economics task where generated artifacts
+should include candidate worklogs. For ordinary questions, normal summaries,
+and simple Excel generation, omit `worklog` or set it to `false`.
+
+Do not send `sourceFiles`, `smart_merge`, `models`, `reasoningLevel`, agent
+names, or merge settings. Those choices belong to Cuey backend.
+
+Requests to create, generate, build, export, or return an Excel workbook are
+always `ask`, never `verify`. Do not change a workbook-generation request into a
+requirements analysis. Example: `Create a downloadable Excel workbook...`
+must be sent as `{"mode":"ask","question":"Create a downloadable Excel workbook..."}`.
+
+When there is no Excel attachment, omit `spreadsheet`. Keep non-Excel attachment context in `context`; never send `sourceFiles`.
 
 After a successful call, the Cuey MCP result is the sole authority for this request:
 
