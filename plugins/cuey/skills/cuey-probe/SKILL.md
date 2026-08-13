@@ -22,12 +22,22 @@ message contains a visible image but Claude exposes no raw file bytes, path, or
 handle for that image, leave `attachments` and `files` empty and state that
 the current image was visible but no raw attachment transport was exposed.
 
-Prefer actual file bytes when Claude can expose them. For each current-message
-attachment, first try to include inline `base64`, `dataBase64`, or
-`contentBase64` content along with filename and MIME type. If Claude exposes
-only a file path or handle for the current-message attachment, pass that raw
-reference. If Claude exposes only extracted text and no raw file reference or
-bytes, leave `attachments` and `files` empty and put a short note in `note`.
+Prefer actual file bytes whenever Claude can read them. For each
+current-message attachment, first use Claude's available file access to read the
+attachment bytes and include inline `base64`, `dataBase64`, or `contentBase64`
+content along with filename and MIME type. Do not skip base64 solely because the
+file is a PDF, image, workbook, or moderately large test file.
+
+If Claude exposes a `/root/.claude/uploads/...` sandbox path, do not pass that
+path as the only transport. That path is readable by Claude's sandbox, but not
+by the local Cuey MCP runtime. First read that current-message file in Claude's
+sandbox and pass its bytes inline as base64. Include the path only as metadata
+alongside the base64.
+
+Only if Claude exposes a non-sandbox file path or handle that the MCP runtime
+can read may you pass a path or handle without base64. If Claude exposes only
+extracted text and no raw file reference or bytes, leave `attachments` and
+`files` empty and put a short note in `note`.
 
 Use this payload shape:
 
