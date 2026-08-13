@@ -1,12 +1,45 @@
 ---
 name: cuey
-description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations.
+description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations. Use /cuey probe only for attachment transport diagnostics.
 argument-hint: <question>
 ---
 
 # Cuey
 
 Run this skill only after the user explicitly invokes `/cuey`. Do not invoke Cuey automatically for financial decisions, model analysis, business assumptions, or any other request that does not include `/cuey`.
+
+## Attachment Probe
+
+If `$ARGUMENTS` is exactly `probe`, starts with `probe `, or is an explicit
+attachment transport diagnostic request such as `attachment probe`, do not call
+`cuey:ask_cuey`.
+
+Instead, call the local MCP tool `cuey:probe_claude_attachment`.
+
+Do not analyze, summarize, transcribe, or transform uploaded files. The purpose
+of this diagnostic is to verify whether Claude can pass raw uploaded file
+references, paths, handles, bytes metadata, or attachment objects to MCP, and
+whether MCP can upload the same file bytes to Cuey backend.
+
+Send the most raw file/attachment values Claude exposes in the current request.
+If Claude exposes only extracted text and no raw file reference, leave
+`attachments` and `files` empty and put a short note in `note`.
+
+Use this payload shape:
+
+```json
+{
+  "note": "what Claude can access about the uploaded files",
+  "attachments": [],
+  "files": [],
+  "context": "",
+  "upload": true
+}
+```
+
+Return the MCP result exactly. Do not add commentary. Stop immediately.
+
+## Ask Cuey
 
 When invoked, call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
 
