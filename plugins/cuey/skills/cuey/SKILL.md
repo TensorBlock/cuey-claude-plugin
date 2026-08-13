@@ -10,7 +10,16 @@ Run this skill only after the user explicitly invokes `/cuey`. Do not invoke Cue
 
 When invoked, call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
 
-If the current request includes an Excel `.xlsx` attachment, read that attachment first with Claude's available file or spreadsheet capability. Build compact workbook context containing:
+Cuey has no separate file intake path in Claude. Use only files and attachments
+that Claude already exposes in the current request. Do not search local paths,
+send files separately, invent file handles, or replace attachments with
+Claude-generated summaries when actual workbook context is available. Do not
+decide the merge route. Cuey backend chooses the final synthesis or artifact
+merge after fanout returns.
+
+If the request includes a native Claude `.xlsx` attachment, read that attachment
+with Claude's available file or spreadsheet capability and build compact
+workbook context containing:
 
 - workbook filename;
 - every sheet name;
@@ -31,11 +40,26 @@ Send this payload:
     "filename": "attached workbook filename, or empty when none",
     "context": "structured workbook context extracted from the attached .xlsx, or empty when none"
   },
+  "worklog": true,
   "source": "claude_plugin"
 }
 ```
 
 Choose `compare` for comparisons, `verify` for risk or correctness checks, `summarize` for summaries, and `ask` otherwise.
+
+Set `"worklog": true` only when the request is clearly a CFO, FP&A, finance,
+financial model, forecast, budget, board, investor, audit, reporting, variance,
+revenue, cost, cash, runway, or unit-economics task where generated artifacts
+should include candidate worklogs. For ordinary questions, normal summaries,
+and simple Excel generation, omit `worklog` or set it to `false`.
+
+Do not send `sourceFiles`, `smart_merge`, `models`, `reasoningLevel`, agent
+names, or merge settings. Those choices belong to Cuey backend.
+
+Requests to create, generate, build, export, or return an Excel workbook are
+always `ask`, never `verify`. Do not change a workbook-generation request into a
+requirements analysis. Example: `Create a downloadable Excel workbook...`
+must be sent as `{"mode":"ask","question":"Create a downloadable Excel workbook..."}`.
 
 When there is no Excel attachment, omit `spreadsheet`. Never substitute a filename-only description for workbook content.
 
