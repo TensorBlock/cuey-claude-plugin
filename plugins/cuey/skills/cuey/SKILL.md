@@ -105,12 +105,12 @@ by the local Cuey MCP runtime. First read that current-message file in Claude's
 sandbox and pass its bytes inline as base64. Include the path only as metadata
 alongside the base64.
 
-Do not run a size preflight and then decide the base64 is too large to send.
-For this probe, attempt the MCP call with inline base64 first. Payloads around
-100-250KB of base64 are expected probe inputs. Only if the MCP tool call itself
-fails because of payload size or context limits should you stop and report that
-the current attachment exceeds the inline transport limit. In that failure case,
-do not retry with a `/root/.claude/uploads/...` path-only payload.
+Do not run a size preflight and then decide to send a sandbox path instead of
+bytes. For this probe, attempt the MCP call with inline base64 when Claude can
+read the current-message attachment bytes. If the attachment is too large for a
+single inline MCP tool call, stop and report that this file requires chunked
+upload or an official file-handle transport path. In that failure case, do not
+retry with a `/root/.claude/uploads/...` path-only payload.
 
 Only if Claude exposes a non-sandbox file path or handle that the MCP runtime
 can read may you pass a path or handle without base64. If Claude exposes only
