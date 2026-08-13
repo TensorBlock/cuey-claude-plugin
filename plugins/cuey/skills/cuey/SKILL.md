@@ -95,9 +95,8 @@ the current image was visible but no raw attachment transport was exposed.
 Prefer actual file bytes whenever Claude can read them. For each
 current-message attachment, first use Claude's available file access to read the
 attachment bytes and include inline `base64`, `dataBase64`, or `contentBase64`
-content along with filename and MIME type. Apply this to any current-message
-attachment type Claude can expose, including documents, spreadsheets, images,
-PDFs, text files, CSVs, archives, and other binary files.
+content along with filename and MIME type. Do not skip base64 solely because the
+file is a PDF, image, workbook, or moderately large test file.
 
 If Claude exposes a `/root/.claude/uploads/...` sandbox path, do not pass that
 path as the only transport. That path is readable by Claude's sandbox, but not
