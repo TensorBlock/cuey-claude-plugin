@@ -32,15 +32,26 @@ references, paths, handles, bytes metadata, or attachment objects to MCP, and
 whether MCP can upload the same file bytes to Cuey backend.
 
 Send the most raw file/attachment values Claude exposes in the current request.
-If Claude exposes only extracted text and no raw file reference, leave
-`attachments` and `files` empty and put a short note in `note`.
+Prefer actual file bytes when Claude can expose them. For each attachment, first
+try to include inline `base64`, `dataBase64`, or `contentBase64` content along
+with filename and MIME type. If Claude exposes only a file path or handle, pass
+that raw reference. If Claude exposes only extracted text and no raw file
+reference or bytes, leave `attachments` and `files` empty and put a short note
+in `note`.
 
 Use this payload shape:
 
 ```json
 {
   "note": "what Claude can access about the uploaded files",
-  "attachments": [],
+  "attachments": [
+    {
+      "filename": "example.png",
+      "mimeType": "image/png",
+      "path": "raw path or handle if available",
+      "base64": "raw file bytes as base64 if Claude can expose them"
+    }
+  ],
   "files": [],
   "context": "",
   "upload": true
