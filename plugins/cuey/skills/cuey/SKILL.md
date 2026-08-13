@@ -31,13 +31,19 @@ of this diagnostic is to verify whether Claude can pass raw uploaded file
 references, paths, handles, bytes metadata, or attachment objects to MCP, and
 whether MCP can upload the same file bytes to Cuey backend.
 
-Send the most raw file/attachment values Claude exposes in the current request.
-Prefer actual file bytes when Claude can expose them. For each attachment, first
-try to include inline `base64`, `dataBase64`, or `contentBase64` content along
-with filename and MIME type. If Claude exposes only a file path or handle, pass
-that raw reference. If Claude exposes only extracted text and no raw file
-reference or bytes, leave `attachments` and `files` empty and put a short note
-in `note`.
+Send only raw file/attachment values from the same user message that invoked
+this probe. Never use attachments from earlier turns, prior probes, chat
+history, memory, cached tool results, or previous Cuey responses. If the current
+message contains a visible image but Claude exposes no raw file bytes, path, or
+handle for that image, leave `attachments` and `files` empty and state that
+the current image was visible but no raw attachment transport was exposed.
+
+Prefer actual file bytes when Claude can expose them. For each current-message
+attachment, first try to include inline `base64`, `dataBase64`, or
+`contentBase64` content along with filename and MIME type. If Claude exposes
+only a file path or handle for the current-message attachment, pass that raw
+reference. If Claude exposes only extracted text and no raw file reference or
+bytes, leave `attachments` and `files` empty and put a short note in `note`.
 
 Use this payload shape:
 
@@ -69,20 +75,19 @@ Call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search,
 or answer directly before calling the tool.
 
 Preserve Claude's normal attachment workflow. Users attach files in Claude's
-composer; Cuey consumes only files and attachment content that Claude already
-exposes in the current request. Do not search local paths, upload or send files
-separately, invent file handles, or replace available attachment content with
-Claude-generated summaries. Do not decide the merge route. Cuey backend chooses
-the final synthesis or artifact merge after fanout returns.
+composer. For normal `/cuey` requests, Cuey receives compact context extracted
+by Claude, not raw uploaded files, paths, handles, bytes, or `sourceFiles`. Raw
+attachment transport is experimental and belongs only to `/cuey probe`.
 
-If the request includes Claude-visible attachments of any type, read them with
-Claude's available file, spreadsheet, document, or vision capability and add
-compact, relevant attachment context to `context`. This applies to Excel, PDF,
-image, document, text, CSV, and other Claude-readable files. For each relevant
-attachment, include the filename, file type, extracted content or observations
-needed for the user's request, and any omitted sections when the file is too
-large to include fully. Do not include only a filename when actual attachment
-content is available.
+If the request includes Claude-visible non-Excel attachments, add only compact,
+relevant context that Claude can already extract naturally. Include filename,
+file type, extracted text or observations needed for the user's request, and
+any omitted sections when the file is too large to include fully. Do not search
+local paths, upload or send files separately, invent file handles, or send raw
+file bytes in normal `/cuey`.
+
+Do not decide the merge route. Cuey backend chooses the final synthesis or
+artifact merge after fanout returns.
 
 If the request includes a native Claude `.xlsx` attachment, also build compact
 workbook context in `spreadsheet` containing:
@@ -101,7 +106,7 @@ Send this payload:
 {
   "mode": "ask | compare | verify | summarize",
   "question": "$ARGUMENTS",
-  "context": "only relevant prior conversation context plus compact context extracted from Claude-visible non-Excel attachments",
+  "context": "only relevant prior conversation context plus compact Claude-extracted context from non-Excel attachments",
   "spreadsheet": {
     "filename": "attached workbook filename, or empty when none",
     "context": "structured workbook context extracted from the attached .xlsx, or empty when none"
