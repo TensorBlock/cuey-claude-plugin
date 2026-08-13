@@ -8,13 +8,23 @@ argument-hint: <question>
 
 Run this skill only after the user explicitly invokes `/cuey`. Do not invoke Cuey automatically for financial decisions, model analysis, business assumptions, or any other request that does not include `/cuey`.
 
+Before using any tool, classify the invocation using this routing table:
+
+1. If `$ARGUMENTS` is exactly `probe`, starts with `probe `, or is an explicit
+   attachment transport diagnostic request such as `attachment probe`, this is
+   a probe request. You must follow **Attachment Probe** and must not call
+   `cuey:ask_cuey`.
+2. Otherwise, this is a normal Cuey request. Follow **Ask Cuey** and call
+   `cuey:ask_cuey`.
+
 ## Attachment Probe
 
-If `$ARGUMENTS` is exactly `probe`, starts with `probe `, or is an explicit
-attachment transport diagnostic request such as `attachment probe`, do not call
-`cuey:ask_cuey`.
+This section applies only to probe requests.
 
-Instead, call the local MCP tool `cuey:probe_claude_attachment`.
+Do not search for `ask_cuey`. Do not call `cuey:ask_cuey`. Do not build an
+Ask Cuey payload. Do not summarize the attachments yourself.
+
+Call only the local MCP tool `cuey:probe_claude_attachment`.
 
 Do not analyze, summarize, transcribe, or transform uploaded files. The purpose
 of this diagnostic is to verify whether Claude can pass raw uploaded file
@@ -41,7 +51,11 @@ Return the MCP result exactly. Do not add commentary. Stop immediately.
 
 ## Ask Cuey
 
-When invoked, call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
+This section applies only to normal Cuey requests. If this is a probe request,
+do not execute this section.
+
+Call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search,
+or answer directly before calling the tool.
 
 Preserve Claude's normal attachment workflow. Users attach files in Claude's
 composer; Cuey consumes only files and attachment content that Claude already
