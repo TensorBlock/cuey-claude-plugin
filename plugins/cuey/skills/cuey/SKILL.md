@@ -1,6 +1,6 @@
 ---
 name: cuey
-description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations. Use /cuey probe only for attachment transport diagnostics.
+description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations. Use /cuey probe or /cuey probe https only for attachment transport diagnostics.
 argument-hint: <question>
 ---
 
@@ -10,12 +10,66 @@ Run this skill only after the user explicitly invokes `/cuey`. Do not invoke Cue
 
 Before using any tool, classify the invocation using this routing table:
 
-1. If `$ARGUMENTS` is exactly `probe`, starts with `probe `, or is an explicit
+1. If `$ARGUMENTS` is exactly `probe https` or starts with `probe https `,
+   this is an HTTPS attachment probe. You must follow **HTTPS Attachment Probe**
+   and must not call `cuey:ask_cuey`.
+2. If `$ARGUMENTS` is exactly `probe`, starts with `probe `, or is an explicit
    attachment transport diagnostic request such as `attachment probe`, this is
    a probe request. You must follow **Attachment Probe** and must not call
    `cuey:ask_cuey`.
-2. Otherwise, this is a normal Cuey request. Follow **Ask Cuey** and call
+3. Otherwise, this is a normal Cuey request. Follow **Ask Cuey** and call
    `cuey:ask_cuey`.
+
+## HTTPS Attachment Probe
+
+This section applies only to `/cuey probe https`. It validates the direct,
+large-file transport path. Do not search for or call `cuey:ask_cuey`, do not
+build an Ask Cuey payload, and do not analyze the attachment.
+
+Use exactly one raw attachment from the current user message. Never reuse an
+attachment from an earlier message. Claude must have a readable raw file path
+for that current attachment, normally under `/root/.claude/uploads/...`. If no
+such path is available, say that direct upload cannot be tested for this
+attachment and stop.
+
+1. Read the file size with `stat -c%s` and SHA-256 with `sha256sum` in the
+   Claude sandbox. Do not base64 encode or chunk the file.
+2. Call only `cuey:probe_claude_attachment_https` with:
+
+```json
+{
+  "action": "begin",
+  "filename": "original filename",
+  "mimeType": "original MIME type",
+  "sizeBytes": 123,
+  "sha256": "lowercase sha256"
+}
+```
+
+3. From the returned `upload_url`, `headers`, and `probe_token`, use `curl` in
+   the Claude sandbox to stream the exact original file:
+
+```bash
+curl --fail --silent --show-error --request PUT \
+  --upload-file "$ATTACHMENT_PATH" \
+  -H "Content-Type: $MIME_TYPE" \
+  -H "x-amz-meta-cuey-sha256: $SHA256" \
+  "$UPLOAD_URL"
+```
+
+4. Call only `cuey:probe_claude_attachment_https` again:
+
+```json
+{
+  "action": "complete",
+  "probeToken": "token returned by begin"
+}
+```
+
+The upload URL and probe token are short-lived secrets. Use them only in tool
+calls and commands; never include either in the user-visible answer. Return the
+completion result exactly and stop. This probe does not run fanout, persist a
+Cuey document, or produce a normal Ask Cuey answer.
 
 ## Attachment Probe
 
@@ -54,8 +108,8 @@ alongside the base64.
 Do not run a size preflight and then decide to send a sandbox path instead of
 bytes. For this probe, attempt the MCP call with inline base64 when Claude can
 read the current-message attachment bytes. If the attachment is too large for a
-single inline MCP tool call, stop and report that this file requires chunked
-upload or an official file-handle transport path. In that failure case, do not
+single inline MCP tool call, stop and report that this file requires the direct
+HTTPS transport path. In that failure case, do not
 retry with a `/root/.claude/uploads/...` path-only payload.
 
 Only if Claude exposes a non-sandbox file path or handle that the MCP runtime
