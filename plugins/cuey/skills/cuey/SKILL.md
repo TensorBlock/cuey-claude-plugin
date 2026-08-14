@@ -46,18 +46,41 @@ attachment and stop.
 }
 ```
 
-3. From the returned `upload_url`, `headers`, and `probe_token`, use `curl` in
-   the Claude sandbox to stream the exact original file:
+3. From the returned `upload_url`, `headers`, and `probe_token`, use the
+   following exit-safe `curl` command in the Claude sandbox to stream the exact
+   original file. It preserves S3's error details without exposing the upload
+   URL or probe token:
 
 ```bash
-curl --fail --silent --show-error --request PUT \
+response_headers="$(mktemp)"
+response_body="$(mktemp)"
+
+set +e
+http_status="$(curl --http1.1 --fail-with-body --silent --show-error \
+  --request PUT \
   --upload-file "$ATTACHMENT_PATH" \
   -H "Content-Type: $MIME_TYPE" \
   -H "x-amz-meta-cuey-sha256: $SHA256" \
-  "$UPLOAD_URL"
+  --dump-header "$response_headers" \
+  --output "$response_body" \
+  --write-out '%{http_code}' \
+  "$UPLOAD_URL")"
+curl_exit=$?
+set -e
+
+if [ "$curl_exit" -ne 0 ]; then
+  s3_request_id="$(awk 'tolower($1) == "x-amz-request-id:" {gsub(/\r/, "", $2); print $2}' "$response_headers")"
+  s3_host_id="$(awk 'tolower($1) == "x-amz-id-2:" {gsub(/\r/, "", $2); print $2}' "$response_headers")"
+  s3_error_code="$(sed -n 's:.*<Code>\([^<]*\)</Code>.*:\1:p' "$response_body")"
+  s3_error_message="$(sed -n 's:.*<Message>\([^<]*\)</Message>.*:\1:p' "$response_body")"
+  printf 'cuey_s3_upload_failed\nhttp_status=%s\ncurl_exit=%s\ns3_error_code=%s\ns3_error_message=%s\ns3_request_id=%s\ns3_host_id=%s\n' \
+    "$http_status" "$curl_exit" "$s3_error_code" "$s3_error_message" "$s3_request_id" "$s3_host_id"
+  exit 0
+fi
 ```
 
-4. Call only `cuey:probe_claude_attachment_https` again:
+4. If and only if the command succeeded, call only
+   `cuey:probe_claude_attachment_https` again:
 
 ```json
 {
@@ -67,9 +90,11 @@ curl --fail --silent --show-error --request PUT \
 ```
 
 The upload URL and probe token are short-lived secrets. Use them only in tool
-calls and commands; never include either in the user-visible answer. Return the
-completion result exactly and stop. This probe does not run fanout, persist a
-Cuey document, or produce a normal Ask Cuey answer.
+calls and commands; never include either in the user-visible answer. On an
+upload failure, return only the printed `cuey_s3_upload_failed` diagnostic and
+stop; do not call `complete`. On success, return the completion result exactly
+and stop. This probe does not run fanout, persist a Cuey document, or produce a
+normal Ask Cuey answer.
 
 ## Attachment Probe
 
