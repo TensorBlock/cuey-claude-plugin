@@ -108,8 +108,8 @@ alongside the base64.
 Do not run a size preflight and then decide to send a sandbox path instead of
 bytes. For this probe, attempt the MCP call with inline base64 when Claude can
 read the current-message attachment bytes. If the attachment is too large for a
-single inline MCP tool call, stop and report that this file requires chunked
-upload or an official file-handle transport path. In that failure case, do not
+single inline MCP tool call, stop and report that this file requires the direct
+HTTPS transport path. In that failure case, do not
 retry with a `/root/.claude/uploads/...` path-only payload.
 
 Only if Claude exposes a non-sandbox file path or handle that the MCP runtime
