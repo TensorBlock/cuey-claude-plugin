@@ -1,6 +1,6 @@
 ---
 name: cuey
-description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations. Use /cuey probe or /cuey probe https only for attachment transport diagnostics.
+description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations. Use /cuey probe only for attachment feature diagnostics.
 argument-hint: <question>
 ---
 
@@ -14,8 +14,8 @@ Before using any tool, classify the invocation using this routing table:
    this is an HTTPS attachment probe. You must follow **HTTPS Attachment Probe**
    and must not call `cuey:ask_cuey`.
 2. If `$ARGUMENTS` is exactly `probe`, starts with `probe `, or is an explicit
-   attachment transport diagnostic request such as `attachment probe`, this is
-   a probe request. You must follow **Attachment Probe** and must not call
+   attachment feature diagnostic request such as `attachment probe`, this is a
+   probe request. You must follow **Attachment Feature Probe** and must not call
    `cuey:ask_cuey`.
 3. Otherwise, this is a normal Cuey request. Follow **Ask Cuey** and call
    `cuey:ask_cuey`.
@@ -96,19 +96,20 @@ stop; do not call `complete`. On success, return the completion result exactly
 and stop. This probe does not run fanout, persist a Cuey document, or produce a
 normal Ask Cuey answer.
 
-## Attachment Probe
+## Attachment Feature Probe
 
 This section applies only to probe requests.
 
 Do not search for `ask_cuey`. Do not call `cuey:ask_cuey`. Do not build an
-Ask Cuey payload. Do not summarize the attachments yourself.
+Ask Cuey payload. Do not summarize, analyze, transcribe, upload, or transform
+the attachments.
 
 Call only the local MCP tool `cuey:probe_claude_attachment`.
 
-Do not analyze, summarize, transcribe, or transform uploaded files. The purpose
-of this diagnostic is to verify whether Claude can pass raw uploaded file
-references, paths, handles, bytes metadata, or attachment objects to MCP, and
-whether MCP can upload the same file bytes to Cuey backend.
+The purpose of this diagnostic is to produce an attachment feature matrix for
+the current user message. It answers one question only: what file identifiers,
+metadata, sandbox paths, byte access, and format-specific features can Claude
+observe before Cuey tries any local file matching or backend upload.
 
 Send only raw file/attachment values from the same user message that invoked
 this probe. Never use attachments from earlier turns, prior probes, chat
@@ -117,47 +118,66 @@ message contains a visible image but Claude exposes no raw file bytes, path, or
 handle for that image, leave `attachments` and `files` empty and state that
 the current image was visible but no raw attachment transport was exposed.
 
-Prefer actual file bytes whenever Claude can read them. For each
-current-message attachment, first use Claude's available file access to read the
-attachment bytes and include inline `base64`, `dataBase64`, or `contentBase64`
-content along with filename and MIME type. Apply this to any current-message
-attachment type Claude can expose, including documents, spreadsheets, images,
-PDFs, text files, CSVs, archives, and other binary files.
+For each current-message attachment that exposes a readable sandbox path,
+collect as many features as possible with Claude's normal file/shell tools.
+Do not base64 encode the file and do not include file contents. Prefer metadata
+and hashes:
 
-If Claude exposes a `/root/.claude/uploads/...` sandbox path, do not pass that
-path as the only transport. That path is readable by Claude's sandbox, but not
-by the local Cuey MCP runtime. First read that current-message file in Claude's
-sandbox and pass its bytes inline as base64. Include the path only as metadata
-alongside the base64.
+- declared filename, MIME type, file UUID or handle when visible;
+- sandbox path, whether a path is present, and whether Claude can read it;
+- `stat` fields: size bytes, mode, mtime, inode when available;
+- SHA-256 of the exact bytes when Claude can read the file;
+- magic/type detection from `file` or first-byte inspection;
+- type-specific metadata when cheap: image dimensions for PNG/JPEG, PDF page
+  estimate, ZIP/OOXML entry count, `.xlsx` sheet names if readable from
+  `xl/workbook.xml`, CSV/text line count and encoding guess;
+- transport feasibility flags: `raw_bytes_readable_by_claude`,
+  `inline_base64_possible_estimate`, `local_mcp_path_readable_estimate`
+  (`false` for `/root/.claude/uploads/...` sandbox paths).
 
-Do not run a size preflight and then decide to send a sandbox path instead of
-bytes. For this probe, attempt the MCP call with inline base64 when Claude can
-read the current-message attachment bytes. If the attachment is too large for a
-single inline MCP tool call, stop and report that this file requires the direct
-HTTPS transport path. In that failure case, do not
-retry with a `/root/.claude/uploads/...` path-only payload.
-
-Only if Claude exposes a non-sandbox file path or handle that the MCP runtime
-can read may you pass a path or handle without base64. If Claude exposes only
-extracted text and no raw file reference or bytes, leave `attachments` and
-`files` empty and put a short note in `note`.
-
-Use this payload shape:
+Use this payload shape. `upload` must be `false` or omitted:
 
 ```json
 {
-  "note": "what Claude can access about the uploaded files",
+  "note": "what Claude can access about the current-message uploaded files",
+  "featureMatrix": [
+    {
+      "inputMode": "composer_file_picker | drag_drop | pasted_inline_image | unknown",
+      "declaredFilename": "example.xlsx",
+      "declaredMimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "fileUuid": "if visible",
+      "sandboxPathPresent": true,
+      "sandboxPath": "/root/.claude/uploads/...",
+      "sandboxPathReadableByClaude": true,
+      "filesystem": {
+        "sizeBytes": 123,
+        "mode": "regular file",
+        "mtime": "timestamp if available",
+        "inode": "inode if available",
+        "sha256": "lowercase sha256 if available",
+        "magicMimeType": "detected type if available"
+      },
+      "formatMetadata": {
+        "kind": "xlsx | pdf | png | jpeg | csv | text | zip | unknown",
+        "availableFields": {}
+      },
+      "transport": {
+        "rawBytesReadableByClaude": true,
+        "inlineBase64PossibleEstimate": true,
+        "localMcpPathReadableEstimate": false
+      }
+    }
+  ],
   "attachments": [
     {
       "filename": "example.png",
       "mimeType": "image/png",
-      "path": "raw path or handle if available",
-      "base64": "raw file bytes as base64 if Claude can expose them"
+      "path": "raw sandbox path or handle if available"
     }
   ],
   "files": [],
   "context": "",
-  "upload": true
+  "upload": false
 }
 ```
 
