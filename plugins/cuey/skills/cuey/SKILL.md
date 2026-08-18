@@ -90,9 +90,9 @@ For each current-message attachment that exposes a readable sandbox path, collec
 - SHA-256 of the exact bytes when Claude can read the file;
 - magic/type detection from `file` or first-byte inspection;
 - type-specific metadata when cheap: image dimensions for PNG/JPEG, PDF page estimate, ZIP/OOXML entry count, `.xlsx` sheet names if readable from `xl/workbook.xml`, CSV/text line count and encoding guess;
-- transport feasibility flags: `raw_bytes_readable_by_claude`, `inline_base64_possible_estimate`, `local_mcp_path_readable_estimate` (`false` for `/root/.claude/uploads/...` sandbox paths).
+- transport feasibility flags: `raw_bytes_readable_by_claude`, `sandbox_path_visible_to_claude`, `local_mcp_path_readable_estimate` (`false` for `/root/.claude/uploads/...` sandbox paths).
 
-Use this payload shape. `upload` must be `false` or omitted:
+Use this payload shape. Do not include `upload`, `base64`, `dataBase64`, `contentBase64`, `bytes`, `content`, or file contents anywhere in the payload:
 
 ```json
 {
@@ -120,7 +120,7 @@ Use this payload shape. `upload` must be `false` or omitted:
       },
       "transport": {
         "rawBytesReadableByClaude": true,
-        "inlineBase64PossibleEstimate": true,
+        "sandboxPathVisibleToClaude": true,
         "localMcpPathReadableEstimate": false
       }
     }
@@ -133,8 +133,7 @@ Use this payload shape. `upload` must be `false` or omitted:
     }
   ],
   "files": [],
-  "context": "",
-  "upload": false
+  "context": ""
 }
 ```
 
