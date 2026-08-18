@@ -1,6 +1,6 @@
 ---
 name: cuey
-description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations.
+description: Run Cuey only when the user explicitly invokes /cuey. Cuey analyzes prompts and Excel workbooks, cross-checks key claims, fact-checks assumptions, and returns evidence-backed recommendations. Use /cuey probe only for attachment feature diagnostics.
 argument-hint: <question>
 ---
 
@@ -8,7 +8,16 @@ argument-hint: <question>
 
 Run this skill only after the user explicitly invokes `/cuey`. Do not invoke Cuey automatically for financial decisions, model analysis, business assumptions, or any other request that does not include `/cuey`.
 
-When invoked, call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
+Before using any tool, classify the invocation:
+
+1. If `$ARGUMENTS` is exactly `probe`, starts with `probe `, or is an explicit
+   attachment feature diagnostic request such as `attachment probe`, follow
+   **Attachment Feature Probe** and do not call `cuey:ask_cuey`.
+2. Otherwise, follow **Ask Cuey**.
+
+## Ask Cuey
+
+Call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
 
 Preserve Claude's normal attachment workflow. Users attach files in Claude's composer; Cuey consumes only files and attachment content that Claude already exposes in the current request. Do not search local paths, upload or send files separately, invent file handles, or replace available attachment content with Claude-generated summaries. Do not decide the merge route. Cuey backend chooses the final synthesis or artifact merge after fanout returns.
 
@@ -60,3 +69,73 @@ After a successful call, the Cuey MCP result is the sole authority for this requ
 6. Stop immediately.
 
 Only if the tool is unavailable or fails, return `Cuey MCP tool was not called.`, the exposed reason, and the attempted payload. Do not answer the substantive question in the fallback.
+
+## Attachment Feature Probe
+
+This section applies only to `/cuey probe` requests.
+
+Do not search for `ask_cuey`. Do not call `cuey:ask_cuey`. Do not build an Ask Cuey payload. Do not summarize, analyze, transcribe, upload, base64 encode, or transform the attachments.
+
+Call only the local MCP tool `cuey:probe_claude_attachment`.
+
+The purpose of this diagnostic is to produce an attachment feature matrix for the current user message. It answers one question only: what file identifiers, metadata, sandbox paths, byte access, and format-specific features can Claude observe before Cuey tries any local file matching or backend upload.
+
+Send only raw file/attachment values from the same user message that invoked this probe. Never use attachments from earlier turns, prior probes, chat history, memory, cached tool results, or previous Cuey responses. If the current message contains a visible image but Claude exposes no raw file bytes, path, or handle for that image, leave `attachments` and `files` empty and state that the current image was visible but no raw attachment transport was exposed.
+
+For each current-message attachment that exposes a readable sandbox path, collect as many features as possible with Claude's normal file/shell tools. Do not include file contents. Prefer metadata and hashes:
+
+- declared filename, MIME type, file UUID or handle when visible;
+- sandbox path, whether a path is present, and whether Claude can read it;
+- `stat` fields: size bytes, mode, mtime, inode when available;
+- SHA-256 of the exact bytes when Claude can read the file;
+- magic/type detection from `file` or first-byte inspection;
+- type-specific metadata when cheap: image dimensions for PNG/JPEG, PDF page estimate, ZIP/OOXML entry count, `.xlsx` sheet names if readable from `xl/workbook.xml`, CSV/text line count and encoding guess;
+- transport feasibility flags: `raw_bytes_readable_by_claude`, `inline_base64_possible_estimate`, `local_mcp_path_readable_estimate` (`false` for `/root/.claude/uploads/...` sandbox paths).
+
+Use this payload shape. `upload` must be `false` or omitted:
+
+```json
+{
+  "note": "what Claude can access about the current-message uploaded files",
+  "featureMatrix": [
+    {
+      "inputMode": "composer_file_picker | drag_drop | pasted_inline_image | unknown",
+      "declaredFilename": "example.xlsx",
+      "declaredMimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "fileUuid": "if visible",
+      "sandboxPathPresent": true,
+      "sandboxPath": "/root/.claude/uploads/...",
+      "sandboxPathReadableByClaude": true,
+      "filesystem": {
+        "sizeBytes": 123,
+        "mode": "regular file",
+        "mtime": "timestamp if available",
+        "inode": "inode if available",
+        "sha256": "lowercase sha256 if available",
+        "magicMimeType": "detected type if available"
+      },
+      "formatMetadata": {
+        "kind": "xlsx | pdf | png | jpeg | csv | text | zip | unknown",
+        "availableFields": {}
+      },
+      "transport": {
+        "rawBytesReadableByClaude": true,
+        "inlineBase64PossibleEstimate": true,
+        "localMcpPathReadableEstimate": false
+      }
+    }
+  ],
+  "attachments": [
+    {
+      "filename": "example.png",
+      "mimeType": "image/png",
+      "path": "raw sandbox path or handle if available"
+    }
+  ],
+  "files": [],
+  "context": "",
+  "upload": false
+}
+```
+
+Return the MCP result exactly and stop.
