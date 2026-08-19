@@ -23,6 +23,8 @@ Preserve Claude's normal attachment workflow. Users attach files in Claude's com
 
 If the request includes Claude-visible attachments of any type, read them with Claude's available file, spreadsheet, document, or vision capability and add compact, relevant attachment context to `context`. This applies to Excel, PDF, image, document, text, CSV, and other Claude-readable files. For each relevant attachment, include the filename, file type, extracted content or observations needed for the user's request, and any omitted sections when the file is too large to include fully. Do not include only a filename when actual attachment content is available.
 
+Also collect the current-message attachment feature matrix when Claude exposes file metadata. This is metadata only, not file contents. Use the same field set defined in **Attachment Feature Probe** when cheap and available: declared filename, MIME type, visible file UUID or handle, sandbox path presence, readable-by-Claude flag, size bytes, mtime, inode, SHA-256, magic/type detection, and cheap format metadata such as `.xlsx` sheet names, ZIP/OOXML entry count, CSV line count, JSON top-level keys, or PDF page/header signals. Pass this matrix as `attachmentFeatureMatrix` so the local Cuey runtime can ask the user's authorized file bridge to locate the original local file. Do not include base64, raw bytes, file contents, or Claude sandbox paths as upload sources.
+
 If the request includes a native Claude `.xlsx` attachment, also build compact workbook context in `spreadsheet` containing:
 
 - workbook filename;
@@ -44,6 +46,32 @@ Send this payload:
     "filename": "attached workbook filename, or empty when none",
     "context": "structured workbook context extracted from the attached .xlsx, or empty when none"
   },
+  "attachmentFeatureMatrix": [
+    {
+      "declaredFilename": "example.xlsx",
+      "declaredMimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "fileUuid": "if visible",
+      "sandboxPathPresent": true,
+      "sandboxPathReadableByClaude": true,
+      "filesystem": {
+        "sizeBytes": 123,
+        "mode": "regular file",
+        "mtime": "timestamp if available",
+        "inode": "inode if available",
+        "sha256": "lowercase sha256 if available",
+        "magicMimeType": "detected type if available"
+      },
+      "formatMetadata": {
+        "kind": "xlsx | pdf | png | jpeg | csv | text | zip | unknown",
+        "availableFields": {}
+      },
+      "transport": {
+        "rawBytesReadableByClaude": true,
+        "sandboxPathVisibleToClaude": true,
+        "localMcpPathReadableEstimate": false
+      }
+    }
+  ],
   "worklog": true,
   "source": "claude_plugin"
 }
@@ -53,7 +81,7 @@ Choose `compare` for comparisons, `verify` for risk or correctness checks, `summ
 
 Set `"worklog": true` only when the request is clearly a CFO, FP&A, finance, financial model, forecast, budget, board, investor, audit, reporting, variance, revenue, cost, cash, runway, or unit-economics task where generated artifacts should include candidate worklogs. For ordinary questions, normal summaries, and simple Excel generation, omit `worklog` or set it to `false`.
 
-Do not send `sourceFiles`, `smart_merge`, `models`, `reasoningLevel`, agent names, or merge settings. Those choices belong to Cuey backend.
+Do not send `sourceFiles`, raw `attachments`, raw `files`, `upload`, `base64`, `dataBase64`, `contentBase64`, `bytes`, `content`, `smart_merge`, `models`, `reasoningLevel`, agent names, or merge settings. Those choices belong to Cuey backend and the local Cuey runtime.
 
 Requests to create, generate, build, export, or return an Excel workbook are always `ask`, never `verify`. Do not change a workbook-generation request into a requirements analysis. Example: `Create a downloadable Excel workbook...` must be sent as `{"mode":"ask","question":"Create a downloadable Excel workbook..."}`.
 
