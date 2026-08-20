@@ -56,14 +56,14 @@ Send this payload:
       }
     }
   ],
-  "worklog": true,
+  "worklog": false,
   "source": "claude_plugin"
 }
 ```
 
 Choose `compare` for comparisons, `verify` for risk or correctness checks, `summarize` for summaries, and `ask` otherwise.
 
-Set `"worklog": true` only when the request is clearly a CFO, FP&A, finance, financial model, forecast, budget, board, investor, audit, reporting, variance, revenue, cost, cash, runway, or unit-economics task where generated artifacts should include candidate worklogs. For ordinary questions, normal summaries, and simple Excel generation, omit `worklog` or set it to `false`.
+Default to `"worklog": false`. Set `"worklog": true` only when the user is explicitly asking Cuey to perform a CFO, FP&A, finance, financial model, forecast, budget, board, investor, audit, reporting, variance, revenue, cost, cash, runway, or unit-economics artifact workflow where candidate worklogs are required for downstream merge. Ordinary file-understanding requests such as "analyze this file", "summarize this file", "explain this attachment", "review this spreadsheet", or "what is in this workbook" must keep `"worklog": false` even when the attachment is an Excel workbook. Those requests should produce a plain text synthesis unless Cuey backend independently returns a generated artifact.
 
 Do not send `spreadsheet`, `sourceFiles`, raw `attachments`, raw `files`, `upload`, `base64`, `dataBase64`, `contentBase64`, `bytes`, `content`, extracted file text, workbook cells, formulas, `smart_merge`, `models`, `reasoningLevel`, agent names, or merge settings. Those choices belong to Cuey backend and the local Cuey runtime.
 
