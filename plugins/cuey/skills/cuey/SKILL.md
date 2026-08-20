@@ -17,7 +17,7 @@ Before using any tool, classify the invocation:
 
 ## Ask Cuey
 
-Call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
+Call the local MCP tool `cuey:ask_cuey`. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before calling the tool. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:ask_cuey` immediately.
 
 An `@filename.ext` reference in `$ARGUMENTS` may identify a file in the Cuey
 desktop file workspace. Pass every such reference to `cuey:ask_cuey` unchanged.
@@ -79,50 +79,14 @@ Never send a separate attachment-content context or `sourceFiles`.
 
 After a successful call, the Cuey MCP result is the sole authority for this request:
 
-1. If the first text item only says that Cuey accepted the task or will continue
-   it in the desktop app, return that handoff meaning as one short message in
-   the user's language and stop. Otherwise, return the first text item exactly
-   as the complete answer.
+1. Return the first text item exactly as the complete answer.
 2. Preserve its Markdown, including a generated-workbook link when Cuey returned one.
 3. Do not run commands, code, browser, spreadsheet, file-generation, or presentation tools after the MCP call.
 4. Do not create, verify, or present a workbook yourself. A requested Excel output must come from the Cuey MCP result's generated-workbook artifact.
 5. Add no preface, analysis, model commentary, or follow-up.
 6. Stop immediately.
 
-If `cuey:ask_cuey` is unavailable or fails, do not answer the substantive
-question and do not expose the attempted payload, request ID, raw tool error, or
-local file path. Instead, call `cuey:get_cuey_task_status` exactly once with the
-original request:
-
-```json
-{
-  "question": "$ARGUMENTS"
-}
-```
-
-Read its JSON status and give one short handoff message in the user's language:
-
-- `queued`: Cuey has received the task and is preparing to continue it in the
-  desktop app. Ask the user to open Cuey for Claude to follow progress.
-- `running`: Cuey has taken over the task and is processing it in the desktop
-  app. Ask the user to view progress and results in Cuey for Claude. Only when
-  the original request contains an `@filename.ext` workspace reference, explain
-  that Claude's local-file limitation does not stop Cuey.
-- `completed` with `resultAvailable: true`: Cuey has completed the task. Ask the
-  user to view the result in Cuey for Claude.
-- `completed` with `resultAvailable: false`: Cuey finished processing, but the
-  desktop result could not be confirmed. Ask the user to check Cuey for Claude
-  without claiming that a result is available.
-- `host_cancelled`: Claude stopped waiting, but Cuey backend cancellation was
-  not confirmed. Ask the user to check the final state in Cuey for Claude.
-- `failed` or `interrupted`: Cuey did not finish the task. Ask the user to open
-  Cuey for Claude for the failure state before retrying.
-- `not_confirmed`, an unavailable status tool, or an invalid status result:
-  Claude could not confirm that Cuey took over. Ask the user to check Cuey for
-  Claude instead of claiming that the task is running.
-
-Do not append Claude's own file-not-found explanation, substantive answer, or
-technical diagnostics after this handoff message. Stop immediately.
+If `cuey:ask_cuey` is unavailable or fails, do not answer the substantive question and do not call any status or fallback tool. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
 
 ## Attachment Feature Probe
 
