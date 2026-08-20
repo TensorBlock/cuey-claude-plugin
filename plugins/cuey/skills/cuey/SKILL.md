@@ -83,14 +83,16 @@ If `cuey:start_cuey` or `cuey:get_cuey_result` is unavailable, fall back once to
 
 After Cuey returns a final successful MCP result from `cuey:get_cuey_result` or the one-time fallback, that result is the sole authority for this request:
 
-1. Return the first text item exactly as the complete answer.
+1. If the first text item only says that Cuey accepted the task, is still finishing, or will continue in Cuey for Claude / Cuey Answers, return that handoff meaning as one short message in the user's language and stop. Otherwise, return the first text item exactly as the complete answer.
 2. Preserve its Markdown, including a generated-workbook link when Cuey returned one.
 3. Do not run commands, code, browser, spreadsheet, file-generation, or presentation tools after the MCP call.
 4. Do not create, verify, or present a workbook yourself. A requested Excel output must come from the Cuey MCP result's generated-workbook artifact.
 5. Add no preface, analysis, model commentary, or follow-up.
 6. Stop immediately.
 
-If the Cuey polling flow and the one-time fallback are unavailable or fail, do not answer the substantive question. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
+If `cuey:start_cuey` succeeds but later polling fails, times out, or Claude cannot continue polling, do not answer the substantive question. Return one short handoff message in the user's language saying Cuey started the task and the user should open Cuey Answers / Cuey for Claude to check progress or the final result. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics.
+
+If the Cuey polling flow and the one-time fallback are unavailable or fail before Cuey starts, do not answer the substantive question. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
 
 ## Attachment Feature Probe
 
