@@ -17,7 +17,7 @@ Before using any tool, classify the invocation:
 
 ## Ask Cuey
 
-Call the local MCP tools `cuey:start_cuey` and `cuey:get_cuey_result`. Use this start-and-poll flow for normal `/cuey` requests so long-running Cuey fanout can complete without hitting Claude's single tool-call timeout. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
+Call the local MCP tool `cuey:ask_cuey`. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before calling Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:ask_cuey` immediately.
 
 An `@filename.ext` reference in `$ARGUMENTS` may identify a file in the Cuey
 desktop file workspace. Pass every such reference to Cuey unchanged.
@@ -29,7 +29,7 @@ Preserve Claude's normal attachment workflow. Users attach files in Claude's com
 
 If the current request includes Claude-visible attachments of any type, collect only the current-message attachment feature matrix when Claude exposes file metadata. This is metadata only, not file contents. Use the same field set defined in **Attachment Feature Probe** when cheap and available: declared filename, MIME type, visible file UUID or handle, sandbox path presence, readable-by-Claude flag, size bytes, mtime, inode, SHA-256, magic/type detection, and cheap format metadata such as `.xlsx` sheet names, ZIP/OOXML entry count, CSV line count, JSON top-level keys, or PDF page/header signals. Pass this matrix as `attachmentFeatureMatrix` so the local Cuey runtime can ask the user's authorized file bridge to locate and upload the original local file. Do not include base64, raw bytes, file contents, extracted text, workbook cells, formulas, or Claude sandbox paths as upload sources.
 
-Send this payload to `cuey:start_cuey`:
+Send this payload to `cuey:ask_cuey`:
 
 ```json
 {
@@ -77,10 +77,6 @@ Requests to create, generate, build, export, or return an Excel workbook are alw
 
 Never send a separate attachment-content context or `sourceFiles`.
 
-`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. After it returns, call `cuey:get_cuey_result` with that `taskId`. If `get_cuey_result` returns JSON with `status: "running"`, wait briefly and poll `cuey:get_cuey_result` again. Repeat until `get_cuey_result` returns the final Cuey answer text or an explicit failure. Do not answer, summarize, or continue the task yourself while the task is running.
-
-If `cuey:start_cuey` or `cuey:get_cuey_result` is unavailable, fall back once to `cuey:ask_cuey` with the same payload. Do not use this fallback when the polling tools are available.
-
 After Cuey returns a final successful MCP result, that result is the sole authority for this request:
 
 1. Return the first text item exactly as the complete answer.
@@ -90,7 +86,7 @@ After Cuey returns a final successful MCP result, that result is the sole author
 5. Add no preface, analysis, model commentary, or follow-up.
 6. Stop immediately.
 
-If the Cuey MCP polling flow and the one-time `cuey:ask_cuey` fallback are unavailable or fail, do not answer the substantive question. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
+If `cuey:ask_cuey` is unavailable or fails, do not answer the substantive question. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
 
 ## Attachment Feature Probe
 
