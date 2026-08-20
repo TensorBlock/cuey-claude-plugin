@@ -17,10 +17,10 @@ Before using any tool, classify the invocation:
 
 ## Ask Cuey
 
-Call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
+Call the local MCP tool `cuey:start_cuey`, then poll `cuey:get_cuey_result` until Cuey returns the final result. Do not rely on a single long-running `cuey:ask_cuey` call for normal `/cuey` requests; long Cuey fanout and synthesis jobs can exceed Claude's single tool-call timeout. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
 
 An `@filename.ext` reference in `$ARGUMENTS` may identify a file in the Cuey
-desktop file workspace. Pass every such reference to `cuey:ask_cuey` unchanged.
+desktop file workspace. Pass every such reference to Cuey unchanged.
 Do not search Claude's uploads directory, claim that the referenced file is
 missing, or ask the user to upload it before the MCP call. The Cuey desktop
 runtime, not Claude, decides whether the workspace file exists.
@@ -29,7 +29,7 @@ Preserve Claude's normal attachment workflow. Users attach files in Claude's com
 
 If the current request includes Claude-visible attachments of any type, collect only the current-message attachment feature matrix when Claude exposes file metadata. This is metadata only, not file contents. Use the same field set defined in **Attachment Feature Probe** when cheap and available: declared filename, MIME type, visible file UUID or handle, sandbox path presence, readable-by-Claude flag, size bytes, mtime, inode, SHA-256, magic/type detection, and cheap format metadata such as `.xlsx` sheet names, ZIP/OOXML entry count, CSV line count, JSON top-level keys, or PDF page/header signals. Pass this matrix as `attachmentFeatureMatrix` so the local Cuey runtime can ask the user's authorized file bridge to locate and upload the original local file. Do not include base64, raw bytes, file contents, extracted text, workbook cells, formulas, or Claude sandbox paths as upload sources.
 
-Send this payload:
+Send this payload to `cuey:start_cuey`:
 
 ```json
 {
@@ -77,7 +77,11 @@ Requests to create, generate, build, export, or return an Excel workbook are alw
 
 Never send a separate attachment-content context or `sourceFiles`.
 
-After a successful call, the Cuey MCP result is the sole authority for this request:
+`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:get_cuey_result` with that `taskId`. If the result is still `status: "running"`, wait briefly and poll again. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running response is another `cuey:get_cuey_result` poll.
+
+If `cuey:start_cuey` or `cuey:get_cuey_result` is unavailable, fall back once to `cuey:ask_cuey` with the exact same payload. Use this fallback only when the polling tools are not available; do not use it when the polling tools are available but Cuey is still running.
+
+After Cuey returns a final successful MCP result from `cuey:get_cuey_result` or the one-time fallback, that result is the sole authority for this request:
 
 1. If the first text item only says that Cuey accepted the task or will continue
    it in the desktop app, return that handoff meaning as one short message in
@@ -89,40 +93,9 @@ After a successful call, the Cuey MCP result is the sole authority for this requ
 5. Add no preface, analysis, model commentary, or follow-up.
 6. Stop immediately.
 
-If `cuey:ask_cuey` is unavailable or fails, do not answer the substantive
-question and do not expose the attempted payload, request ID, raw tool error, or
-local file path. Instead, call `cuey:get_cuey_task_status` exactly once with the
-original request:
+If `cuey:start_cuey` succeeds but later polling fails, times out, or Claude cannot continue polling, do not answer the substantive question. Return one short handoff message in the user's language saying Cuey started the task and the user should open Cuey Answers / Cuey for Claude to check progress or the final result. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics.
 
-```json
-{
-  "question": "$ARGUMENTS"
-}
-```
-
-Read its JSON status and give one short handoff message in the user's language:
-
-- `queued`: Cuey has received the task and is preparing to continue it in the
-  desktop app. Ask the user to open Cuey for Claude to follow progress.
-- `running`: Cuey has taken over the task and is processing it in the desktop
-  app. Ask the user to view progress and results in Cuey for Claude. Only when
-  the original request contains an `@filename.ext` workspace reference, explain
-  that Claude's local-file limitation does not stop Cuey.
-- `completed` with `resultAvailable: true`: Cuey has completed the task. Ask the
-  user to view the result in Cuey for Claude.
-- `completed` with `resultAvailable: false`: Cuey finished processing, but the
-  desktop result could not be confirmed. Ask the user to check Cuey for Claude
-  without claiming that a result is available.
-- `host_cancelled`: Claude stopped waiting, but Cuey backend cancellation was
-  not confirmed. Ask the user to check the final state in Cuey for Claude.
-- `failed` or `interrupted`: Cuey did not finish the task. Ask the user to open
-  Cuey for Claude for the failure state before retrying.
-- `not_confirmed`, an unavailable status tool, or an invalid status result:
-  Claude could not confirm that Cuey took over. Ask the user to check Cuey for
-  Claude instead of claiming that the task is running.
-
-Do not append Claude's own file-not-found explanation, substantive answer, or
-technical diagnostics after this handoff message. Stop immediately.
+If the Cuey polling flow and the one-time fallback are unavailable or fail before Cuey starts, do not answer the substantive question. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
 
 ## Attachment Feature Probe
 
