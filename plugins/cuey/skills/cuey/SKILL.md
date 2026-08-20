@@ -19,21 +19,9 @@ Before using any tool, classify the invocation:
 
 Call the local MCP tool `cuey:ask_cuey`. Do not use bash, recall memory, search, or answer directly before calling the tool.
 
-Preserve Claude's normal attachment workflow. Users attach files in Claude's composer; Cuey consumes only files and attachment content that Claude already exposes in the current request. Do not search local paths, upload or send files separately, invent file handles, or replace available attachment content with Claude-generated summaries. Do not decide the merge route. Cuey backend chooses the final synthesis or artifact merge after fanout returns.
+Preserve Claude's normal attachment workflow. Users attach files in Claude's composer; Cuey resolves the original local files through the user's authorized file bridge. Do not search local paths, upload or send files separately, invent file handles, read file contents for Ask Cuey, dump workbook cells, transcribe attachments, or replace attachments with Claude-generated summaries. Do not decide the merge route. Cuey backend chooses the final synthesis or artifact merge after fanout returns.
 
-If the request includes Claude-visible attachments of any type, read them with Claude's available file, spreadsheet, document, or vision capability and add compact, relevant attachment context to `context`. This applies to Excel, PDF, image, document, text, CSV, and other Claude-readable files. For each relevant attachment, include the filename, file type, extracted content or observations needed for the user's request, and any omitted sections when the file is too large to include fully. Do not include only a filename when actual attachment content is available.
-
-Also collect the current-message attachment feature matrix when Claude exposes file metadata. This is metadata only, not file contents. Use the same field set defined in **Attachment Feature Probe** when cheap and available: declared filename, MIME type, visible file UUID or handle, sandbox path presence, readable-by-Claude flag, size bytes, mtime, inode, SHA-256, magic/type detection, and cheap format metadata such as `.xlsx` sheet names, ZIP/OOXML entry count, CSV line count, JSON top-level keys, or PDF page/header signals. Pass this matrix as `attachmentFeatureMatrix` so the local Cuey runtime can ask the user's authorized file bridge to locate the original local file. Do not include base64, raw bytes, file contents, or Claude sandbox paths as upload sources.
-
-If the request includes a native Claude `.xlsx` attachment, also build compact workbook context in `spreadsheet` containing:
-
-- workbook filename;
-- every sheet name;
-- the used range and headers for each relevant sheet;
-- cell values and formulas relevant to the user's question;
-- any omitted sheets or ranges when the workbook is too large to include fully.
-
-Do not infer missing cells or formulas. For a small workbook, include all populated cells. For a large workbook, prioritize the sheets and ranges relevant to `$ARGUMENTS` and clearly record the selection in the workbook context.
+If the current request includes Claude-visible attachments of any type, collect only the current-message attachment feature matrix when Claude exposes file metadata. This is metadata only, not file contents. Use the same field set defined in **Attachment Feature Probe** when cheap and available: declared filename, MIME type, visible file UUID or handle, sandbox path presence, readable-by-Claude flag, size bytes, mtime, inode, SHA-256, magic/type detection, and cheap format metadata such as `.xlsx` sheet names, ZIP/OOXML entry count, CSV line count, JSON top-level keys, or PDF page/header signals. Pass this matrix as `attachmentFeatureMatrix` so the local Cuey runtime can ask the user's authorized file bridge to locate and upload the original local file. Do not include base64, raw bytes, file contents, extracted text, workbook cells, formulas, or Claude sandbox paths as upload sources.
 
 Send this payload:
 
@@ -41,11 +29,7 @@ Send this payload:
 {
   "mode": "ask | compare | verify | summarize",
   "question": "$ARGUMENTS",
-  "context": "only relevant prior conversation context plus compact context extracted from Claude-visible non-Excel attachments",
-  "spreadsheet": {
-    "filename": "attached workbook filename, or empty when none",
-    "context": "structured workbook context extracted from the attached .xlsx, or empty when none"
-  },
+  "context": "only relevant prior conversation context; do not include extracted attachment contents",
   "attachmentFeatureMatrix": [
     {
       "declaredFilename": "example.xlsx",
@@ -81,11 +65,11 @@ Choose `compare` for comparisons, `verify` for risk or correctness checks, `summ
 
 Set `"worklog": true` only when the request is clearly a CFO, FP&A, finance, financial model, forecast, budget, board, investor, audit, reporting, variance, revenue, cost, cash, runway, or unit-economics task where generated artifacts should include candidate worklogs. For ordinary questions, normal summaries, and simple Excel generation, omit `worklog` or set it to `false`.
 
-Do not send `sourceFiles`, raw `attachments`, raw `files`, `upload`, `base64`, `dataBase64`, `contentBase64`, `bytes`, `content`, `smart_merge`, `models`, `reasoningLevel`, agent names, or merge settings. Those choices belong to Cuey backend and the local Cuey runtime.
+Do not send `spreadsheet`, `sourceFiles`, raw `attachments`, raw `files`, `upload`, `base64`, `dataBase64`, `contentBase64`, `bytes`, `content`, extracted file text, workbook cells, formulas, `smart_merge`, `models`, `reasoningLevel`, agent names, or merge settings. Those choices belong to Cuey backend and the local Cuey runtime.
 
 Requests to create, generate, build, export, or return an Excel workbook are always `ask`, never `verify`. Do not change a workbook-generation request into a requirements analysis. Example: `Create a downloadable Excel workbook...` must be sent as `{"mode":"ask","question":"Create a downloadable Excel workbook..."}`.
 
-When there is no Excel attachment, omit `spreadsheet`. Keep non-Excel attachment context in `context`; never send `sourceFiles`.
+Never send a separate attachment-content context or `sourceFiles`.
 
 After a successful call, the Cuey MCP result is the sole authority for this request:
 
