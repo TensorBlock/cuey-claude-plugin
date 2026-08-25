@@ -77,16 +77,17 @@ Requests to create, generate, build, export, or return an Excel workbook are alw
 
 Never send a separate attachment-content context or `sourceFiles`.
 
-`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:get_cuey_result` with that `taskId`. If the result is still `status: "running"`, wait briefly and poll again. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running response is another `cuey:get_cuey_result` poll.
+`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:get_cuey_result` with that `taskId`. If the result is still `status: "running"` or only says that Cuey accepted the task, picked up the task, is continuing it in the desktop app, or should be checked in Cuey Answers / Cuey for Claude, treat that response as non-terminal task status, wait briefly, and poll `cuey:get_cuey_result` again with the same `taskId`. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running or status-only response is another `cuey:get_cuey_result` poll.
 
 If `cuey:start_cuey` or `cuey:get_cuey_result` is unavailable, fall back once to `cuey:ask_cuey` with the exact same payload. Use this fallback only when the polling tools are not available; do not use it when the polling tools are available but Cuey is still running.
 
 After Cuey returns a final successful MCP result from `cuey:get_cuey_result` or the one-time fallback, that result is the sole authority for this request:
 
-1. If the first text item only says that Cuey accepted the task or will continue
-   it in the desktop app, return that handoff meaning as one short message in
-   the user's language and stop. Otherwise, return the first text item exactly
-   as the complete answer.
+1. Return the first text item exactly as the complete answer. A status-only
+   message saying Cuey accepted the task, picked up the task, is continuing it
+   in the desktop app, or should be checked in Cuey Answers / Cuey for Claude is
+   not a final successful result while a `taskId` is known; poll again instead
+   of returning that handoff text.
 2. Preserve its Markdown, including a generated-workbook link when Cuey returned one.
 3. Do not run commands, code, browser, spreadsheet, file-generation, or presentation tools after the MCP call.
 4. Do not create, verify, or present a workbook yourself. A requested Excel output must come from the Cuey MCP result's generated-workbook artifact.
