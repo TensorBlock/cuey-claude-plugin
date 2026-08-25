@@ -17,7 +17,7 @@ Before using any tool, classify the invocation:
 
 ## Ask Cuey
 
-Before inspecting attachments, running commands, reading files, recalling memory, searching, or doing any other work, call `cuey:claim_cuey_request` with the exact original `$ARGUMENTS` as `question`.
+Before inspecting or reading attachments, running commands, reading files, recalling memory, searching, or doing any other work, determine only whether the current request includes one or more Claude-visible attachments. Then call `cuey:claim_cuey_request` with the exact original `$ARGUMENTS` as `question` and `expectsAttachments` set to `true` when attachments are present or `false` when there are none. This boolean is required; do not infer it from the question text.
 
 - If it returns `status: "claimed"`, retain the returned `requestId`. Only then may you collect the attachment feature matrix described below. Pass that exact `requestId` unchanged to `cuey:start_cuey`.
 - If it returns `status: "handoff"` with a `requestId`, another Cuey execution already owns the request. Retain that `requestId`, do not inspect attachments, do not call `cuey:start_cuey`, and immediately poll `cuey:get_cuey_result` with that `requestId` until Cuey returns the final result.
