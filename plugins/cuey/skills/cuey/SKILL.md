@@ -20,11 +20,12 @@ Before using any tool, classify the invocation:
 Before inspecting attachments, running commands, reading files, recalling memory, searching, or doing any other work, call `cuey:claim_cuey_request` with the exact original `$ARGUMENTS` as `question`.
 
 - If it returns `status: "claimed"`, retain the returned `requestId`. Only then may you collect the attachment feature matrix described below. Pass that exact `requestId` unchanged to `cuey:start_cuey`.
-- If it returns `status: "handoff"`, another Cuey execution already owns the request. Return one short handoff message in the user's language and stop. Do not inspect attachments or call another Cuey tool.
+- If it returns `status: "handoff"` with a `requestId`, another Cuey execution already owns the request. Retain that `requestId`, do not inspect attachments, do not call `cuey:start_cuey`, and immediately poll `cuey:get_cuey_result` with that `requestId` until Cuey returns the final result.
+- If it returns `status: "handoff"` without a `requestId`, return one short handoff message in the user's language and stop. Do not inspect attachments or call another Cuey tool.
 - If it returns `status: "not_required"`, this `/cuey` invocation did not originate from the Cuey desktop overlay. Continue normally without a `requestId`.
 - If `cuey:claim_cuey_request` is unavailable, continue normally. Do not treat an unavailable claim tool as a Cuey failure.
 
-After the claim step, call the local MCP tool `cuey:start_cuey`, then poll `cuey:get_cuey_result` until Cuey returns the final result. Do not rely on a single long-running `cuey:ask_cuey` call for normal `/cuey` requests; long Cuey fanout and synthesis jobs can exceed Claude's single tool-call timeout. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
+After a `claimed`, `not_required`, or unavailable claim step, call the local MCP tool `cuey:start_cuey`, then poll `cuey:get_cuey_result` until Cuey returns the final result. Do not rely on a single long-running `cuey:ask_cuey` call for normal `/cuey` requests; long Cuey fanout and synthesis jobs can exceed Claude's single tool-call timeout. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
 
 An `@filename.ext` reference in `$ARGUMENTS` may identify a file in the Cuey
 desktop file workspace. Pass every such reference to Cuey unchanged.
