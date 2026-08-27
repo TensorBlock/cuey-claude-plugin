@@ -9,7 +9,7 @@
       "name": "cuey",
       "source": "./plugins/cuey",
       "description": "Cuey is an agentic financial intelligence system that analyzes prompts and Excel workbooks, improves decision accuracy through cross-checking and fact-checking, and delivers evidence-backed recommendations.",
-      "version": "0.4.29",
+      "version": "0.4.30",
       "author": {
         "name": "TensorBlock"
       },
