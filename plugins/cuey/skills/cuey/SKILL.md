@@ -17,15 +17,7 @@ Before using any tool, classify the invocation:
 
 ## Ask Cuey
 
-Before inspecting or reading attachments, running commands, reading files, recalling memory, searching, or doing any other work, determine only whether the current request includes one or more Claude-visible attachments. Then call `cuey:claim_cuey_request` with the exact original `$ARGUMENTS` as `question` and `expectsAttachments` set to `true` when attachments are present or `false` when there are none. This boolean is required; do not infer it from the question text.
-
-- If it returns `status: "claimed"`, retain the returned `requestId`. Only then may you collect the attachment feature matrix described below. Pass that exact `requestId` unchanged to `cuey:start_cuey`.
-- If it returns `status: "handoff"` with a `requestId`, another Cuey execution already owns the request. Retain that `requestId`, do not inspect attachments, do not call `cuey:start_cuey`, and immediately poll `cuey:get_cuey_result` with that `requestId` until Cuey returns the final result.
-- If it returns `status: "handoff"` without a `requestId`, return one short handoff message in the user's language and stop. Do not inspect attachments or call another Cuey tool.
-- If it returns `status: "not_required"`, this `/cuey` invocation did not originate from the Cuey desktop overlay. Continue normally without a `requestId`.
-- If `cuey:claim_cuey_request` is unavailable, continue normally. Do not treat an unavailable claim tool as a Cuey failure.
-
-After a `claimed`, `not_required`, or unavailable claim step, call the local MCP tool `cuey:start_cuey`, then poll `cuey:get_cuey_result` until Cuey returns the final result. Do not rely on a single long-running `cuey:ask_cuey` call for normal `/cuey` requests; long Cuey fanout and synthesis jobs can exceed Claude's single tool-call timeout. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
+Call the local MCP tool `cuey:start_cuey`, then poll `cuey:get_cuey_result` until Cuey returns the final result. Do not use claim, pending-request, handoff, or single-call `cuey:ask_cuey` tools: Cuey backend owns durable task state. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
 
 An `@filename.ext` reference in `$ARGUMENTS` may identify a file in the Cuey
 desktop file workspace. Pass every such reference to Cuey unchanged.
@@ -41,7 +33,6 @@ Send this payload to `cuey:start_cuey`:
 
 ```json
 {
-  "requestId": "exact requestId returned by cuey:claim_cuey_request, when present",
   "mode": "ask | compare | verify | summarize",
   "question": "$ARGUMENTS",
   "context": "only relevant prior conversation context; do not include extracted attachment contents",
@@ -86,11 +77,9 @@ Requests to create, generate, build, export, or return an Excel workbook are alw
 
 Never send a separate attachment-content context or `sourceFiles`.
 
-`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:get_cuey_result` with that `taskId`. If the result is still `status: "running"` or only says that Cuey accepted the task, picked up the task, is continuing it in the desktop app, or should be checked in Cuey Answers / Cuey for Claude, treat that response as non-terminal task status, wait briefly, and poll `cuey:get_cuey_result` again with the same `taskId`. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running or status-only response is another `cuey:get_cuey_result` poll.
+`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:get_cuey_result` with that `taskId`. If the result is still `status: "running"` or only says that Cuey accepted the task or is continuing it, treat that response as non-terminal task status, wait briefly, and poll `cuey:get_cuey_result` again with the same `taskId`. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running or status-only response is another `cuey:get_cuey_result` poll.
 
-If `cuey:start_cuey` or `cuey:get_cuey_result` is unavailable, fall back once to `cuey:ask_cuey` with the exact same payload. Use this fallback only when the polling tools are not available; do not use it when the polling tools are available but Cuey is still running.
-
-After Cuey returns a final successful MCP result from `cuey:get_cuey_result` or the one-time fallback, that result is the sole authority for this request:
+After Cuey returns a final successful MCP result from `cuey:get_cuey_result`, that result is the sole authority for this request:
 
 1. Return the first text item exactly as the complete answer. A status-only
    message saying Cuey accepted the task, picked up the task, is continuing it
@@ -105,7 +94,7 @@ After Cuey returns a final successful MCP result from `cuey:get_cuey_result` or 
 
 If `cuey:start_cuey` succeeds but later polling fails, times out, or Claude cannot continue polling, do not answer the substantive question. Return one short handoff message in the user's language saying Cuey started the task and the user should open Cuey Answers / Cuey for Claude to check progress or the final result. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics.
 
-If the Cuey polling flow and the one-time fallback are unavailable or fail before Cuey starts, do not answer the substantive question. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
+If the Cuey polling flow is unavailable or fails before Cuey starts, do not answer the substantive question. Return one short failure message in the user's language that says Cuey MCP was not called or did not complete, plus the exposed reason if Claude provides one. Do not expose local file paths, request IDs, raw payloads, or technical diagnostics unless the user explicitly asks for debugging details.
 
 ## Attachment Feature Probe
 
