@@ -25,6 +25,12 @@ Do not search Claude's uploads directory, claim that the referenced file is
 missing, or ask the user to upload it before the MCP call. The Cuey desktop
 runtime, not Claude, decides whether the workspace file exists.
 
+A `#CODE` reference in `$ARGUMENTS` may identify a generated file from a prior
+Cuey result. Preserve every such code unchanged in `question`. Do not resolve
+it yourself, treat it as a new attachment, or replace it with a filename. The
+Cuey backend validates the reference and supplies the prior artifact to the
+next fanout.
+
 Preserve Claude's normal attachment workflow. Users attach files in Claude's composer; Cuey resolves the original local files through the user's authorized file bridge. Do not search local paths, upload or send files separately, invent file handles, read file contents for Ask Cuey, dump workbook cells, transcribe attachments, or replace attachments with Claude-generated summaries. Do not decide the merge route. Cuey backend chooses the final synthesis or artifact merge after fanout returns.
 
 If the current request includes Claude-visible attachments of any type, collect only the current-message attachment feature matrix when Claude exposes file metadata. This is metadata only, not file contents. Use the same field set defined in **Attachment Feature Probe** when cheap and available: declared filename, MIME type, visible file UUID or handle, sandbox path presence, readable-by-Claude flag, size bytes, mtime, inode, SHA-256, magic/type detection, and cheap format metadata such as `.xlsx` sheet names, ZIP/OOXML entry count, CSV line count, JSON top-level keys, or PDF page/header signals. Pass this matrix as `attachmentFeatureMatrix` so the local Cuey runtime can ask the user's authorized file bridge to locate and upload the original local file. Do not include base64, raw bytes, file contents, extracted text, workbook cells, formulas, or Claude sandbox paths as upload sources.
