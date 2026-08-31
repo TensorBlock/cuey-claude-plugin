@@ -17,7 +17,7 @@ Before using any tool, classify the invocation:
 
 ## Ask Cuey
 
-Call the local MCP tool `cuey:start_cuey`, then use `cuey:wait_for_cuey_update` until it returns the final result. It returns only for a meaningful Cuey update: a stage change, a completed candidate, or the final result. Do not use claim, pending-request, handoff, single-call `cuey:ask_cuey`, or legacy `cuey:get_cuey_result` tools: Cuey backend owns durable task state. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
+Call the local MCP tool `cuey:start_cuey`, then use `cuey:wait_for_cuey_update` until it returns the final result. Each call waits up to 90 seconds and returns early only when Cuey finishes; otherwise it returns one running status at the end of that window. Do not use claim, pending-request, handoff, single-call `cuey:ask_cuey`, or legacy `cuey:get_cuey_result` tools: Cuey backend owns durable task state. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
 
 An `@filename.ext` reference in `$ARGUMENTS` may identify a file in the Cuey
 desktop file workspace. Pass every such reference to Cuey unchanged.
@@ -83,7 +83,7 @@ Requests to create, generate, build, export, or return an Excel workbook are alw
 
 Never send a separate attachment-content context or `sourceFiles`.
 
-`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:wait_for_cuey_update` with `{"taskId":"...","waitSeconds":90}`. That call waits for a meaningful Cuey update or the final result, so do not add an artificial delay or call another tool while it is pending. If it returns `status: "running"` or only says that Cuey accepted or is continuing the task, immediately make the same 90-second `cuey:wait_for_cuey_update` call with the same `taskId`. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running or status-only response is another long `cuey:wait_for_cuey_update` call.
+`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:wait_for_cuey_update` with `{"taskId":"...","waitSeconds":90}`. Do not add an artificial delay or call another tool while it is pending. If it returns `status: "running"` or only says that Cuey accepted or is continuing the task, immediately make the same 90-second `cuey:wait_for_cuey_update` call with the same `taskId`. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running or status-only response is another long `cuey:wait_for_cuey_update` call.
 
 After Cuey returns a final successful MCP result from `cuey:wait_for_cuey_update`, that result is the sole authority for this request:
 
