@@ -83,7 +83,7 @@ Requests to create, generate, build, export, or return an Excel workbook are alw
 
 Never send a separate attachment-content context or `sourceFiles`.
 
-`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:get_cuey_result` with that `taskId`. If the result is still `status: "running"` or only says that Cuey accepted the task or is continuing it, treat that response as non-terminal task status, wait briefly, and poll `cuey:get_cuey_result` again with the same `taskId`. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running or status-only response is another `cuey:get_cuey_result` poll.
+`cuey:start_cuey` returns JSON with `status: "running"` and a `taskId`. Call `cuey:get_cuey_result` with `{"taskId":"...","waitSeconds":90}`. That call waits for a Cuey status revision or the final result, so do not add an artificial delay or call another tool while it is pending. If it returns `status: "running"` or only says that Cuey accepted or is continuing the task, immediately make the same 90-second `cuey:get_cuey_result` call again with the same `taskId`. Do not answer, summarize, continue the workflow, create files, run commands, or call other tools while Cuey is running. The only acceptable next step after a running or status-only response is another long `cuey:get_cuey_result` poll.
 
 After Cuey returns a final successful MCP result from `cuey:get_cuey_result`, that result is the sole authority for this request:
 
