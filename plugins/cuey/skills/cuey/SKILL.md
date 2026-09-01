@@ -77,6 +77,12 @@ Choose `compare` for comparisons, `verify` for risk or correctness checks, `summ
 
 Default to `"worklog": false`. Set `"worklog": true` only when the user is explicitly asking Cuey to perform a CFO, FP&A, finance, financial model, forecast, budget, board, investor, audit, reporting, variance, revenue, cost, cash, runway, or unit-economics artifact workflow where candidate worklogs are required for downstream merge. Ordinary file-understanding requests such as "analyze this file", "summarize this file", "explain this attachment", "review this spreadsheet", or "what is in this workbook" must keep `"worklog": false` even when the attachment is an Excel workbook. Those requests should produce a plain text synthesis unless Cuey backend independently returns a generated artifact.
 
+For a `"worklog": true` Smart Merge request, add `"outputFileName"` only when the
+user explicitly specifies the final deliverable's filename. Pass that exact filename
+as a basename, for example `"Acme FY2027 Forecast.xlsx"`. Do not derive a filename
+from the prompt, add a directory, or supply a default. When the user does not name a
+final file, omit `"outputFileName"` entirely.
+
 Do not send `spreadsheet`, `sourceFiles`, raw `attachments`, raw `files`, `upload`, `base64`, `dataBase64`, `contentBase64`, `bytes`, `content`, extracted file text, workbook cells, formulas, `smart_merge`, `models`, `reasoningLevel`, agent names, or merge settings. Those choices belong to Cuey backend and the local Cuey runtime.
 
 Requests to create, generate, build, export, or return an Excel workbook are always `ask`, never `verify`. Do not change a workbook-generation request into a requirements analysis. Example: `Create a downloadable Excel workbook...` must be sent as `{"mode":"ask","question":"Create a downloadable Excel workbook..."}`.
