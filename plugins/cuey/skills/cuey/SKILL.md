@@ -17,7 +17,17 @@ Before using any tool, classify the invocation:
 
 ## Ask Cuey
 
-Call the local MCP tool `cuey:start_cuey`, then use `cuey:wait_for_cuey_update` until it returns the final result. Each call waits up to 45 seconds and returns early only when Cuey finishes; otherwise it returns one running status at the end of that window. Do not use claim, pending-request, handoff, single-call `cuey:ask_cuey`, or legacy `cuey:get_cuey_result` tools: Cuey backend owns durable task state. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey` immediately.
+Call the local MCP tool `cuey:start_cuey`, then use `cuey:wait_for_cuey_update` until it returns the final result. Each call waits up to 45 seconds and returns early only when Cuey finishes; otherwise it returns one running status at the end of that window. Do not use claim, pending-request, handoff, single-call `cuey:ask_cuey`, or legacy `cuey:get_cuey_result` tools: Cuey backend owns durable task state. Before starting, resolve explicitly requested skills as described below. If the current request has no attachments, do not use bash, recall memory, search, or answer directly before starting Cuey. If the current request has attachments, collect only the attachment feature matrix described below, then call `cuey:start_cuey`.
+
+When the user explicitly asks to use an installed skill for this task, call
+`cuey:list_cuey_skills` to find its name and ID. Pass only the requested skills'
+IDs in `skillIds` to `cuey:start_cuey`; ask the user to choose if the name is
+ambiguous. Selecting a skill sends its complete file package, including scripts,
+references, and assets, to Cuey's remote task runtime. Do not select skills
+automatically or select all installed skills. Do not read, execute, or paste skill
+contents into the prompt or context yourself. If the tool or requested skill is
+unavailable, report that limitation instead of silently starting without it.
+For tasks without an explicit skill request, omit `skillIds` and skip the listing.
 
 An `@filename.ext` reference in `$ARGUMENTS` may identify a file in the Cuey
 desktop file workspace. Pass every such reference to Cuey unchanged.
